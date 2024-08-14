@@ -148,7 +148,7 @@ class CodeFileCollectorApp:
 
     def default_extensions(self):
         return [
-            '.js', '.ts', '.py', '.jsx', '.tsx', '.html', '.css', '.cpp', '.java',
+            '.js', '.ts', '.py', '.jsx', '.tsx', '.html', '.css', '.cpp', '.java', '.vue',
             '.c', '.cs', '.rb', '.php', '.go', '.rs', '.swift', '.json',
             '.xml', '.yml', '.yaml', '.sh', '.bash', '.ps1', '.bat', '.cmd',
             '.sql', '.pl', '.perl', '.r', '.lua', '.m', '.mm', '.h', '.hpp',
