@@ -5,6 +5,7 @@ import sys
 import json
 import fnmatch
 import argparse
+from .utils import create_default_ignore_file
 
 
 class ConfigParser:
@@ -157,6 +158,8 @@ class CodeFileCollectorApp:
         ]
 
     def run(self):
+        create_default_ignore_file()
+
         if os.path.exists(self.args.config):
             config_parser = ConfigParser(self.args.config)
             config_extensions, config_exclude_patterns, config_ignore_folders, config_ignore_files = config_parser.parse()

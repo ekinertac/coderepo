@@ -1,8 +1,12 @@
 __pycache__
 .DS_Store
 
+venv
+
 .idea
-.egg-info
+
+htmlrepo.egg-info
+
 report.yaml
 report.html
 report.json

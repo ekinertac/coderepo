@@ -5,13 +5,11 @@
 
 # Extensions to exclude
 !*.min.js
+!*.min.css
 
 
 # Files to ignore
 !package-lock.json
-!__init__.py
-
-
 
 # Folders to ignore
 /node_modules
