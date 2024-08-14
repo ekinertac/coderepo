@@ -4,7 +4,8 @@ import os
 import sys
 import json
 import fnmatch
-from pathlib import Path
+import argparse
+
 
 class ConfigParser:
     def __init__(self, config_file):
@@ -21,7 +22,7 @@ class ConfigParser:
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                
+
                 if line.startswith('!'):
                     if '/' in line:
                         ignore_folders.append(line[1:])
@@ -35,6 +36,7 @@ class ConfigParser:
                     extensions.append(line)
 
         return extensions, exclude_patterns, ignore_folders, ignore_files
+
 
 class FileCollector:
     def __init__(self, root_dir, ignore_dirs, ignore_files, exclude_patterns, extensions):
@@ -74,6 +76,7 @@ class FileCollector:
                     except UnicodeDecodeError as e:
                         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         return files_data
+
 
 class Formatter:
     def format_yaml_like(self, files_data):
@@ -121,6 +124,7 @@ class Formatter:
         else:  # Default to HTML
             return self.format_html(files_data)
 
+
 class FileWriter:
     def __init__(self, output_file):
         self.output_file = output_file
@@ -131,6 +135,7 @@ class FileWriter:
         else:
             with open(self.output_file, 'w') as file:
                 file.write(content)
+
 
 class CodeFileCollectorApp:
     def __init__(self, args):
@@ -176,9 +181,8 @@ class CodeFileCollectorApp:
         file_writer = FileWriter(self.args.output)
         file_writer.write(formatted_output)
 
-if __name__ == "__main__":
-    import argparse
 
+def main():
     parser = argparse.ArgumentParser(description="Collect code files into a structured format.")
     parser.add_argument('start_directory', help="The directory to start searching from.")
     parser.add_argument('-o', '--output', default='report.yaml', help="The output file name. Use '-' for stdout.")
