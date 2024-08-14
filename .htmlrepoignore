@@ -1,0 +1,28 @@
+# Extensions to include
+# .py
+# .js
+# .jsx
+
+# Extensions to exclude
+!*.min.js
+
+
+# Files to ignore
+!package-lock.json
+!__init__.py
+
+
+
+# Folders to ignore
+/node_modules
+/dist
+/venv
+/.venv
+/.expo
+/migrations
+/public-api
+/htmlcov
+/docs
+/.devcontainer
+/static
+/.idea
