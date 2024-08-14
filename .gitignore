@@ -5,7 +5,7 @@ venv
 
 .idea
 
-htmlrepo.egg-info
+coderepo.egg-info
 
 report.yaml
 report.html

@@ -191,7 +191,7 @@ def main():
     parser.add_argument('-x', '--exclude-extensions', nargs='*', help="List of file extensions to exclude.")
     parser.add_argument('-i', '--ignore-folders', nargs='*', help="List of directories to ignore.")
     parser.add_argument('--ignore-files', nargs='*', help="List of files to ignore (supports wildcards).")
-    parser.add_argument('-c', '--config', default=os.path.expanduser('~/.htmlrepoignore'), help="Path to a config file for default settings.")
+    parser.add_argument('-c', '--config', default=os.path.expanduser('~/.coderepoignore'), help="Path to a config file for default settings.")
 
     args = parser.parse_args()
 
