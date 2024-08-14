@@ -14,7 +14,7 @@ class ConfigParser:
         extensions = []
         exclude_patterns = []
         ignore_folders = []
-        ignore_files = []
+        ignore_files = ["report.yaml", "report.html", "report.json", "report.xml"]
 
         with open(self.config_file, 'r') as file:
             for line in file:
