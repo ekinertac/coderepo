@@ -6,140 +6,178 @@ import json
 import fnmatch
 from pathlib import Path
 
-def parse_config_file(config_file):
-    extensions = []
-    exclude_patterns = []
-    ignore_folders = []
-    ignore_files = []
+class ConfigParser:
+    def __init__(self, config_file):
+        self.config_file = config_file
 
-    with open(config_file, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            
-            if line.startswith('!'):
-                if '/' in line:
-                    ignore_folders.append(line[1:])
-                elif '*' in line or '.' in line:
-                    exclude_patterns.append(line[1:])
-                else:
-                    ignore_files.append(line[1:])
-            elif line.startswith('/'):
-                ignore_folders.append(line)
-            elif '.' in line:
-                extensions.append(line)
+    def parse(self):
+        extensions = []
+        exclude_patterns = []
+        ignore_folders = []
+        ignore_files = []
 
-    return extensions, exclude_patterns, ignore_folders, ignore_files
+        with open(self.config_file, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                if line.startswith('!'):
+                    if '/' in line:
+                        ignore_folders.append(line[1:])
+                    elif '*' in line or '.' in line:
+                        exclude_patterns.append(line[1:])
+                    else:
+                        ignore_files.append(line[1:])
+                elif line.startswith('/'):
+                    ignore_folders.append(line)
+                elif '.' in line:
+                    extensions.append(line)
 
-def format_yaml_like(files_data):
-    output = "files:\n"
-    for file_data in files_data:
-        output += f"  - path: {file_data['path']}\n"
-        output += "    content: |\n"
-        content_lines = file_data['content'].splitlines()
-        for line in content_lines:
-            output += f"      {line}\n"
-    return output
+        return extensions, exclude_patterns, ignore_folders, ignore_files
 
-def format_json(files_data):
-    return json.dumps({'files': files_data}, indent=2)
+class FileCollector:
+    def __init__(self, root_dir, ignore_dirs, ignore_files, exclude_patterns, extensions):
+        self.root_dir = root_dir
+        self.ignore_dirs = ignore_dirs
+        self.ignore_files = ignore_files
+        self.exclude_patterns = exclude_patterns
+        self.extensions = extensions
 
-def format_html(files_data):
-    output = "<html><body><pre>\n"
-    for file_data in files_data:
-        output += f"<h2>{file_data['path']}</h2>\n"
-        output += "<code>\n"
-        output += file_data['content']
-        output += "</code>\n<br/>\n"
-    output += "</pre></body></html>"
-    return output
+    def should_ignore(self, path):
+        abs_path = os.path.abspath(path)
+        for ignore_dir in self.ignore_dirs:
+            if ignore_dir in abs_path:
+                return True
+        filename = os.path.basename(abs_path)
+        for pattern in self.ignore_files + self.exclude_patterns:
+            if fnmatch.fnmatch(filename, pattern):
+                return True
+        return False
 
-def format_xml(files_data):
-    output = "<files>\n"
-    for file_data in files_data:
-        output += f"  <file>\n"
-        output += f"    <path>{file_data['path']}</path>\n"
-        output += "    <content><![CDATA[\n"
-        output += file_data['content']
-        output += "\n    ]]></content>\n"
-        output += "  </file>\n"
-    output += "</files>"
-    return output
+    def collect(self):
+        files_data = []
+        for dirpath, dirnames, filenames in os.walk(self.root_dir):
+            dirnames[:] = [d for d in dirnames if not self.should_ignore(os.path.join(dirpath, d))]
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                if self.should_ignore(file_path):
+                    continue
+                file_ext = os.path.splitext(filename)[1]
+                if any(fnmatch.fnmatch(filename, pattern) for pattern in self.exclude_patterns):
+                    continue
+                if not self.extensions or file_ext in self.extensions:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as code_file:
+                            content = code_file.read()
+                        files_data.append({'path': file_path, 'content': content})
+                    except UnicodeDecodeError as e:
+                        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+        return files_data
 
-def should_ignore(path, ignore_dirs, ignore_files, exclude_patterns):
-    abs_path = os.path.abspath(path)
+class Formatter:
+    def format_yaml_like(self, files_data):
+        output = "files:\n"
+        for file_data in files_data:
+            output += f"  - path: {file_data['path']}\n"
+            output += "    content: |\n"
+            content_lines = file_data['content'].splitlines()
+            for line in content_lines:
+                output += f"      {line}\n"
+        return output
 
-    # Check if the path should be ignored based on the directories
-    for ignore_dir_path in ignore_dirs:
-        ignore_dir = ignore_dir_path.split(os.sep)[-1]
-        if ignore_dir in abs_path:
-            return True
+    def format_json(self, files_data):
+        return json.dumps({'files': files_data}, indent=2)
 
-    # Check if the filename should be ignored
-    filename = os.path.basename(abs_path)
-    for pattern in ignore_files + exclude_patterns:
-        if fnmatch.fnmatch(filename, pattern):
-            return True
+    def format_html(self, files_data):
+        output = "<html><body><pre>\n"
+        for file_data in files_data:
+            output += f"<h2>{file_data['path']}</h2>\n"
+            output += "<code>\n"
+            output += file_data['content']
+            output += "</code>\n<br/>\n"
+        output += "</pre></body></html>"
+        return output
 
-    return False
+    def format_xml(self, files_data):
+        output = "<files>\n"
+        for file_data in files_data:
+            output += f"  <file>\n"
+            output += f"    <path>{file_data['path']}</path>\n"
+            output += "    <content><![CDATA[\n"
+            output += file_data['content']
+            output += "\n    ]]></content>\n"
+            output += "  </file>\n"
+        output += "</files>"
+        return output
 
-def collect_code_files(root_dir, output_file, extensions, exclude_patterns, ignore_dirs, ignore_files, output_format):
-    files_data = []
-    if output_file != '-':
-        ignore_files.append(os.path.basename(output_file))
+    def format(self, files_data, output_format):
+        if output_format == 'yaml':
+            return self.format_yaml_like(files_data)
+        elif output_format == 'json':
+            return self.format_json(files_data)
+        elif output_format == 'xml':
+            return self.format_xml(files_data)
+        else:  # Default to HTML
+            return self.format_html(files_data)
 
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        # Skip ignored directories
-        dirnames[:] = [d for d in dirnames if not should_ignore(os.path.join(dirpath, d), ignore_dirs, ignore_files, exclude_patterns)]
-        
-        for filename in filenames:
-            file_path = os.path.join(dirpath, filename)
-            if should_ignore(file_path, ignore_dirs, ignore_files, exclude_patterns):
-                continue
+class FileWriter:
+    def __init__(self, output_file):
+        self.output_file = output_file
 
-            file_ext = os.path.splitext(filename)[1]
-            if any(fnmatch.fnmatch(filename, pattern) for pattern in exclude_patterns):
-                continue
-            if not extensions or file_ext in extensions:
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as code_file:
-                        content = code_file.read()
-                    files_data.append({
-                        'path': file_path,
-                        'content': content
-                    })
-                except UnicodeDecodeError as e:
-                    print(f"Error reading file {file_path}: {e}", file=sys.stderr)
-    
-    if output_format == 'yaml':
-        formatted_output = format_yaml_like(files_data)
-    elif output_format == 'json':
-        formatted_output = format_json(files_data)
-    elif output_format == 'xml':
-        formatted_output = format_xml(files_data)
-    else:  # Default to HTML
-        formatted_output = format_html(files_data)
+    def write(self, content):
+        if self.output_file == '-':
+            print(content)
+        else:
+            with open(self.output_file, 'w') as file:
+                file.write(content)
 
-    if output_file == '-':
-        print(formatted_output)
-    else:
-        with open(output_file, 'w') as file:
-            file.write(formatted_output)
+class CodeFileCollectorApp:
+    def __init__(self, args):
+        self.args = args
+        self.extensions = args.extensions if args.extensions else self.default_extensions()
+        self.exclude_patterns = args.exclude_extensions if args.exclude_extensions else []
+        self.ignore_folders = [os.path.abspath(os.path.join(args.start_directory, d)) for d in args.ignore_folders] if args.ignore_folders else []
+        self.ignore_files = args.ignore_files if args.ignore_files else []
+
+    def default_extensions(self):
+        return [
+            '.js', '.ts', '.py', '.jsx', '.tsx', '.html', '.css', '.cpp', '.java',
+            '.c', '.cs', '.rb', '.php', '.go', '.rs', '.swift', '.json',
+            '.xml', '.yml', '.yaml', '.sh', '.bash', '.ps1', '.bat', '.cmd',
+            '.sql', '.pl', '.perl', '.r', '.lua', '.m', '.mm', '.h', '.hpp',
+            '.hxx', '.cxx', '.cshtml', '.aspx', '.jsp', '.asp', '.ejs', '.md',
+            '.markdown', '.rst', '.txt', '.conf', '.cfg', '.ini', '.env', '.envrc',
+            'Dockerfile', 'Makefile', 'Rakefile', 'Gemfile', 'Vagrantfile', 'Procfile',
+        ]
+
+    def run(self):
+        if os.path.exists(self.args.config):
+            config_parser = ConfigParser(self.args.config)
+            config_extensions, config_exclude_patterns, config_ignore_folders, config_ignore_files = config_parser.parse()
+            self.extensions = config_extensions or self.extensions
+            self.exclude_patterns = config_exclude_patterns or self.exclude_patterns
+            self.ignore_folders.extend([os.path.abspath(os.path.join(self.args.start_directory, d)) for d in config_ignore_folders])
+            self.ignore_files.extend(config_ignore_files)
+
+        file_collector = FileCollector(
+            root_dir=self.args.start_directory,
+            ignore_dirs=self.ignore_folders,
+            ignore_files=self.ignore_files,
+            exclude_patterns=self.exclude_patterns,
+            extensions=self.extensions
+        )
+
+        files_data = file_collector.collect()
+
+        formatter = Formatter()
+        formatted_output = formatter.format(files_data, self.args.format)
+
+        file_writer = FileWriter(self.args.output)
+        file_writer.write(formatted_output)
 
 if __name__ == "__main__":
     import argparse
-
-    # Default extensions for most common programming languages
-    default_extensions = [
-        '.js', '.ts', '.py', '.jsx', '.tsx', '.html', '.css', '.cpp', '.java', 
-        '.c', '.cs', '.rb', '.php', '.go', '.rs', '.swift', '.json',
-        '.xml', '.yml', '.yaml', '.sh', '.bash', '.ps1', '.bat', '.cmd',
-        '.sql', '.pl', '.perl', '.r', '.lua', '.m', '.mm', '.h', '.hpp',
-        '.hxx', '.cxx', '.cshtml', '.aspx', '.jsp', '.asp', '.ejs', '.md',
-        '.markdown', '.rst', '.txt', '.conf', '.cfg', '.ini', '.env', '.envrc',
-        'Dockerfile', 'Makefile', 'Rakefile', 'Gemfile', 'Vagrantfile', 'Procfile',
-    ]
 
     parser = argparse.ArgumentParser(description="Collect code files into a structured format.")
     parser.add_argument('start_directory', help="The directory to start searching from.")
@@ -153,19 +191,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Initialize with defaults
-    extensions = args.extensions if args.extensions else default_extensions
-    exclude_patterns = args.exclude_extensions if args.exclude_extensions else []
-    ignore_folders = [os.path.abspath(os.path.join(args.start_directory, d)) for d in args.ignore_folders] if args.ignore_folders else []
-    ignore_files = args.ignore_files if args.ignore_files else []
-
-    # Load settings from config file if it exists
-    if os.path.exists(args.config):
-        config_extensions, config_exclude_patterns, config_ignore_folders, config_ignore_files = parse_config_file(args.config)
-        extensions = config_extensions or extensions
-        exclude_patterns = config_exclude_patterns or exclude_patterns
-        ignore_folders.extend([os.path.abspath(os.path.join(args.start_directory, d)) for d in config_ignore_folders])
-        ignore_files.extend(config_ignore_files)
-
-    # Collect code files
-    collect_code_files(args.start_directory, args.output, extensions, exclude_patterns, ignore_folders, ignore_files, args.format)
+    app = CodeFileCollectorApp(args)
+    app.run()
