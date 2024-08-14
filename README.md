@@ -1,4 +1,4 @@
-### HTMLRepo - Collect Code Files into an HTML File
+### CODERepo - Collect Code Files into an HTML File
 
 This script, `coderepo`, recursively finds code files in a specified 
 directory and compiles their contents into a single file. 
