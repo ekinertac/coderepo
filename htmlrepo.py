@@ -3,12 +3,14 @@
 import os
 import sys
 import json
+import fnmatch
 from pathlib import Path
 
 def parse_config_file(config_file):
     extensions = []
-    exclude_extensions = []
+    exclude_patterns = []
     ignore_folders = []
+    ignore_files = []
 
     with open(config_file, 'r') as file:
         for line in file:
@@ -17,13 +19,18 @@ def parse_config_file(config_file):
                 continue
             
             if line.startswith('!'):
-                exclude_extensions.append(line[1:])
+                if '/' in line:
+                    ignore_folders.append(line[1:])
+                elif '*' in line or '.' in line:
+                    exclude_patterns.append(line[1:])
+                else:
+                    ignore_files.append(line[1:])
             elif line.startswith('/'):
-                ignore_folders.append(line[1:])
-            else:
+                ignore_folders.append(line)
+            elif '.' in line:
                 extensions.append(line)
 
-    return extensions, exclude_extensions, ignore_folders
+    return extensions, exclude_patterns, ignore_folders, ignore_files
 
 def format_yaml_like(files_data):
     output = "files:\n"
@@ -60,30 +67,39 @@ def format_xml(files_data):
     output += "</files>"
     return output
 
-def should_ignore(path, ignore_dirs, ignore_files):
-    for ignore_dir in ignore_dirs:
-        if os.path.commonpath([ignore_dir, path]) == ignore_dir:
+def should_ignore(path, ignore_dirs, ignore_files, exclude_patterns):
+    abs_path = os.path.abspath(path)
+
+    # Check if the path should be ignored based on the directories
+    for ignore_dir_path in ignore_dirs:
+        ignore_dir = ignore_dir_path.split(os.sep)[-1]
+        if ignore_dir in abs_path:
             return True
-    return path in ignore_files
 
-def collect_code_files(root_dir, output_file, extensions, exclude_extensions, ignore_dirs, output_format):
+    # Check if the filename should be ignored
+    filename = os.path.basename(abs_path)
+    for pattern in ignore_files + exclude_patterns:
+        if fnmatch.fnmatch(filename, pattern):
+            return True
+
+    return False
+
+def collect_code_files(root_dir, output_file, extensions, exclude_patterns, ignore_dirs, ignore_files, output_format):
     files_data = []
-    ignore_files = []
-
     if output_file != '-':
-        ignore_files.append(os.path.abspath(output_file))
+        ignore_files.append(os.path.basename(output_file))
 
     for dirpath, dirnames, filenames in os.walk(root_dir):
         # Skip ignored directories
-        dirnames[:] = [d for d in dirnames if not should_ignore(os.path.join(dirpath, d), ignore_dirs, ignore_files)]
+        dirnames[:] = [d for d in dirnames if not should_ignore(os.path.join(dirpath, d), ignore_dirs, ignore_files, exclude_patterns)]
         
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
-            if should_ignore(file_path, ignore_dirs, ignore_files):
+            if should_ignore(file_path, ignore_dirs, ignore_files, exclude_patterns):
                 continue
 
             file_ext = os.path.splitext(filename)[1]
-            if file_ext in exclude_extensions:
+            if any(fnmatch.fnmatch(filename, pattern) for pattern in exclude_patterns):
                 continue
             if not extensions or file_ext in extensions:
                 try:
@@ -132,21 +148,24 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--extensions', nargs='*', help="List of file extensions to include.")
     parser.add_argument('-x', '--exclude-extensions', nargs='*', help="List of file extensions to exclude.")
     parser.add_argument('-i', '--ignore-folders', nargs='*', help="List of directories to ignore.")
+    parser.add_argument('--ignore-files', nargs='*', help="List of files to ignore (supports wildcards).")
     parser.add_argument('-c', '--config', default=os.path.expanduser('~/.htmlrepoignore'), help="Path to a config file for default settings.")
 
     args = parser.parse_args()
 
     # Initialize with defaults
     extensions = args.extensions if args.extensions else default_extensions
-    exclude_extensions = args.exclude_extensions if args.exclude_extensions else []
+    exclude_patterns = args.exclude_extensions if args.exclude_extensions else []
     ignore_folders = [os.path.abspath(os.path.join(args.start_directory, d)) for d in args.ignore_folders] if args.ignore_folders else []
+    ignore_files = args.ignore_files if args.ignore_files else []
 
     # Load settings from config file if it exists
     if os.path.exists(args.config):
-        config_extensions, config_exclude_extensions, config_ignore_folders = parse_config_file(args.config)
+        config_extensions, config_exclude_patterns, config_ignore_folders, config_ignore_files = parse_config_file(args.config)
         extensions = config_extensions or extensions
-        exclude_extensions = config_exclude_extensions or exclude_extensions
+        exclude_patterns = config_exclude_patterns or exclude_patterns
         ignore_folders.extend([os.path.abspath(os.path.join(args.start_directory, d)) for d in config_ignore_folders])
+        ignore_files.extend(config_ignore_files)
 
     # Collect code files
-    collect_code_files(args.start_directory, args.output, extensions, exclude_extensions, ignore_folders, args.format)
+    collect_code_files(args.start_directory, args.output, extensions, exclude_patterns, ignore_folders, ignore_files, args.format)
