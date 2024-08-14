@@ -11,3 +11,7 @@ report.yaml
 report.html
 report.json
 report.xml
+
+build
+dist
+

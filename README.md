@@ -1,26 +1,30 @@
 ### HTMLRepo - Collect Code Files into an HTML File
 
-This Python script, `htmlrepo`, recursively finds code files in a specified 
-directory and compiles their contents into an HTML file. 
+This script, `htmlrepo`, recursively finds code files in a specified 
+directory and compiles their contents into a single file. 
 
 The script is highly configurable, allowing users to specify file extensions, 
 exclude certain extensions, ignore directories, and use a configuration file for default settings.
 
+### Why?
+
+When working on a project, it can be helpful to have a single file containing all the code files in a directory to send 
+to LLMs to give them a better understanding of the project. This script automates the process of collecting code files.
+
 #### Features
 
 - Recursively find code files: Collect files with specified extensions from a directory and its subdirectories.
-- HTML output: The contents of the found files are compiled into a single HTML file for easy viewing.
 - Customizable extensions: Define which file extensions to include or exclude.
 - Ignore directories: Specify directories to ignore during the search.
 - Configuration file: Set default options in a config file following a .gitignore-like format.
 
 #### Installation
 
-1. Create a file named htmlrepo in a directory of your choice `touch htmlrepo`
-2. Copy the script content into the htmlrepo file.
-3. Make the script executable: `chmod +x htmlrepo`
-4. (Optional) Move the script to a directory in your PATH (e.g., /usr/local/bin) `sudo mv htmlrepo /usr/local/bin/`
-5. Verify the installation `htmlrepo --help`
+1. Clone the repository: `git clone git@github.com:ekinertac/htmlrepo.git`
+2. Change to the repository directory: `cd htmlrepo`
+3. Install the script: `pip install .`
+
+> It's not available on the PyPI yet.
 
 #### Usage
 
@@ -30,6 +34,9 @@ Basic Usage
 
 This will search for code files in the current directory using most common programming language file extensions
 and output an HTML file named `htmlreport.html` in the current directory.
+
+> Note: The script will create a sample ignore file on first run located at ~/.htmlrepoignore
+
 
 #### Options
 
@@ -47,6 +54,10 @@ and output an HTML file named `htmlreport.html` in the current directory.
 
 - `-c, --config` : Specify a custom config file. Defaults to `~/.htmlrepoignore`.
     htmlrepo . -c /path/to/custom_config.txt
+
+- `-f, --format` : The output format: yaml, json, xml, or html. Defaults to yaml.
+    htmlrepo . -f html
+
 
 #### Configuration File
 
@@ -70,20 +81,23 @@ Example config file (`~/.htmlrepoignore`):
     .jsx
 
     # Extensions to exclude
-    !.css
+    !.min.js
 
     # Folders to ignore
     /node_modules
     /dist
 
-Example Command
 
-    htmlrepo . -o output.html -e .py .js -x .html -i node_modules dist
+### Example Extended Command
+
+    htmlrepo . -o output.yml -e .py .js -x .html -i node_modules dist
 
 This command will search for `.py` and `.js` files, exclude `.html` files, 
-ignore the `node_modules` and `dist` directories, and generate an `output.html` 
+ignore the `node_modules` and `dist` directories, and generate an `output.yml` 
 file in the current directory.
 
-License
+### TODO:
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+    - [ ] Add testing for the script.
+
+
