@@ -3,3 +3,7 @@ __pycache__
 
 .idea
 .egg-info
+report.yaml
+report.html
+report.json
+report.xml
