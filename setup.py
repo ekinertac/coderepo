@@ -1,17 +1,17 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='htmlrepo',
+    name='coderepo',
     version='0.1.0',
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'htmlrepo=htmlrepo.htmlrepo:main',
+            'coderepo=coderepo.coderepo:main',
         ],
     },
     install_requires=[],
     python_requires='>=3.6',
-    url='https://github.com/ekinertac/htmlrepo',
+    url='https://github.com/ekinertac/coderepo',
     license='MIT',
     author='Ekin Ertaç',
     author_email='ekinertac@gmail.com',

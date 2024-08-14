@@ -15,6 +15,7 @@ example_file = """
 !package-lock.json
 
 # Folders to ignore
+/.git
 /node_modules
 /dist
 /venv
@@ -27,6 +28,7 @@ example_file = """
 /.devcontainer
 /static
 /.idea
+
 """
 
 def create_default_ignore_file():
