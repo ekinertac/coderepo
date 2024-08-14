@@ -1,0 +1,11 @@
+# Extensions to include
+# .py
+# .js
+# .jsx
+
+# Extensions to exclude
+# !.css
+
+# Folders to ignore
+/node_modules
+/dist
