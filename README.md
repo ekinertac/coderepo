@@ -99,6 +99,6 @@ file in the current directory.
 
 ### TODO:
 
-    - [ ] Add testing for the script.
+- [ ] Add testing for the script.
 
 
