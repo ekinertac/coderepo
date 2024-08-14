@@ -22,9 +22,10 @@ to LLMs to give them a better understanding of the project. This script automate
 
 1. Clone the repository: `git clone git@github.com:ekinertac/htmlrepo.git`
 2. Change to the repository directory: `cd htmlrepo`
-3. Install the script: `pip install .`
+3. Install the script: `pip install -e .`
+4. Run the script: `htmlrepo .`
 
-> It's not available on the PyPI yet.
+> The project is under development and not yet available on PyPI. You can get the updates by pulling the repository.
 
 #### Usage
 

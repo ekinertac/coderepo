@@ -39,13 +39,16 @@ class ConfigParser:
         return extensions, exclude_patterns, ignore_folders, ignore_files
 
 
+import os
+import mimetypes
+
+
 class FileCollector:
-    def __init__(self, root_dir, ignore_dirs, ignore_files, exclude_patterns, extensions):
+    def __init__(self, root_dir, ignore_dirs, ignore_files, exclude_patterns):
         self.root_dir = root_dir
         self.ignore_dirs = ignore_dirs
         self.ignore_files = ignore_files
         self.exclude_patterns = exclude_patterns
-        self.extensions = extensions
 
     def should_ignore(self, path):
         abs_path = os.path.abspath(path)
@@ -58,6 +61,14 @@ class FileCollector:
                 return True
         return False
 
+    def is_binary_file(self, file_path):
+        # Open the file in binary mode and check for non-text characters
+        with open(file_path, 'rb') as file:
+            chunk = file.read(1024)
+            if b'\0' in chunk:  # A binary file often contains null bytes
+                return True
+        return False
+
     def collect(self):
         files_data = []
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
@@ -66,16 +77,15 @@ class FileCollector:
                 file_path = os.path.join(dirpath, filename)
                 if self.should_ignore(file_path):
                     continue
-                file_ext = os.path.splitext(filename)[1]
-                if any(fnmatch.fnmatch(filename, pattern) for pattern in self.exclude_patterns):
-                    continue
-                if not self.extensions or file_ext in self.extensions:
+                if not self.is_binary_file(file_path):
                     try:
                         with open(file_path, 'r', encoding='utf-8') as code_file:
                             content = code_file.read()
                         files_data.append({'path': file_path, 'content': content})
                     except UnicodeDecodeError as e:
                         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"Skipping unreadable file {file_path}: {e}", file=sys.stderr)
         return files_data
 
 
@@ -141,29 +151,17 @@ class FileWriter:
 class CodeFileCollectorApp:
     def __init__(self, args):
         self.args = args
-        self.extensions = args.extensions if args.extensions else self.default_extensions()
         self.exclude_patterns = args.exclude_extensions if args.exclude_extensions else []
         self.ignore_folders = [os.path.abspath(os.path.join(args.start_directory, d)) for d in args.ignore_folders] if args.ignore_folders else []
         self.ignore_files = args.ignore_files if args.ignore_files else []
 
-    def default_extensions(self):
-        return [
-            '.js', '.ts', '.py', '.jsx', '.tsx', '.html', '.css', '.cpp', '.java', '.vue',
-            '.c', '.cs', '.rb', '.php', '.go', '.rs', '.swift', '.json',
-            '.xml', '.yml', '.yaml', '.sh', '.bash', '.ps1', '.bat', '.cmd',
-            '.sql', '.pl', '.perl', '.r', '.lua', '.m', '.mm', '.h', '.hpp',
-            '.hxx', '.cxx', '.cshtml', '.aspx', '.jsp', '.asp', '.ejs', '.md',
-            '.markdown', '.rst', '.txt', '.conf', '.cfg', '.ini', '.env', '.envrc',
-            'Dockerfile', 'Makefile', 'Rakefile', 'Gemfile', 'Vagrantfile', 'Procfile',
-        ]
-
     def run(self):
+        # Check if the default config file exists, create it if it doesn't
         create_default_ignore_file()
 
         if os.path.exists(self.args.config):
             config_parser = ConfigParser(self.args.config)
-            config_extensions, config_exclude_patterns, config_ignore_folders, config_ignore_files = config_parser.parse()
-            self.extensions = config_extensions or self.extensions
+            _, config_exclude_patterns, config_ignore_folders, config_ignore_files = config_parser.parse()
             self.exclude_patterns = config_exclude_patterns or self.exclude_patterns
             self.ignore_folders.extend([os.path.abspath(os.path.join(self.args.start_directory, d)) for d in config_ignore_folders])
             self.ignore_files.extend(config_ignore_files)
@@ -172,8 +170,7 @@ class CodeFileCollectorApp:
             root_dir=self.args.start_directory,
             ignore_dirs=self.ignore_folders,
             ignore_files=self.ignore_files,
-            exclude_patterns=self.exclude_patterns,
-            extensions=self.extensions
+            exclude_patterns=self.exclude_patterns
         )
 
         files_data = file_collector.collect()
