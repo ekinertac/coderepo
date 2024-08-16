@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import os
 import sys
 import json
@@ -15,8 +14,13 @@ class ConfigParser:
     def parse(self):
         extensions = []
         exclude_patterns = []
-        ignore_folders = []
-        ignore_files = ["report.yaml", "report.html", "report.json", "report.xml"]
+        ignore_folders = [
+            "__pycache__", ".git", ".svn", ".hg", ".bzr",
+            ".idea", ".vscode", "venv", "node_modules"
+        ]
+        ignore_files = [
+            "report.yaml", "report.html", "report.json", "report.xml"
+        ]
 
         with open(self.config_file, 'r') as file:
             for line in file:
@@ -37,10 +41,6 @@ class ConfigParser:
                     extensions.append(line)
 
         return extensions, exclude_patterns, ignore_folders, ignore_files
-
-
-import os
-import mimetypes
 
 
 class FileCollector:
