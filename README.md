@@ -56,7 +56,7 @@ and output an HTML file named `codereport.html` in the current directory.
 - `-c, --config` : Specify a custom config file. Defaults to `~/.coderepoignore`.
     coderepo . -c /path/to/custom_config.txt
 
-- `-f, --format` : The output format: yaml, json, xml, or html. Defaults to yaml.
+- `-f, --format` : The output format: yaml, json, xml, md, or html. Defaults to yaml.
     coderepo . -f html
 
 
