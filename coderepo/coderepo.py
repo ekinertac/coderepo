@@ -19,7 +19,7 @@ class ConfigParser:
             ".idea", ".vscode", "venv", "node_modules"
         ]
         ignore_files = [
-            "report.yaml", "report.html", "report.json", "report.xml"
+            "report.yaml", "report.html", "report.json", "report.xml", "report.md"
         ]
 
         with open(self.config_file, 'r') as file:
@@ -125,6 +125,16 @@ class Formatter:
         output += "</files>"
         return output
 
+    def format_md(self, files_data):
+        output = ""
+        for file_data in files_data:
+            file_extension = os.path.splitext(file_data['path'])[1][1:]  # Get file extension without the dot
+            output += f"# {file_data['path']}\n\n"
+            output += f"```{file_extension}\n"
+            output += file_data['content']
+            output += "\n```\n\n"
+        return output
+
     def format(self, files_data, output_format):
         if output_format == 'yaml':
             return self.format_yaml_like(files_data)
@@ -132,6 +142,8 @@ class Formatter:
             return self.format_json(files_data)
         elif output_format == 'xml':
             return self.format_xml(files_data)
+        elif output_format == 'md':
+            return self.format_md(files_data)
         else:  # Default to HTML
             return self.format_html(files_data)
 
@@ -186,7 +198,7 @@ def main():
     parser = argparse.ArgumentParser(description="Collect code files into a structured format.")
     parser.add_argument('start_directory', help="The directory to start searching from.")
     parser.add_argument('-o', '--output', default='report.yaml', help="The output file name. Use '-' for stdout.")
-    parser.add_argument('-f', '--format', choices=['yaml', 'json', 'xml', 'html'], default='yaml', help="The output format: yaml, json, xml, or html.")
+    parser.add_argument('-f', '--format', choices=['yaml', 'json', 'xml', 'html', 'md'], default='yaml', help="The output format: yaml, json, xml, html, or md.")
     parser.add_argument('-e', '--extensions', nargs='*', help="List of file extensions to include.")
     parser.add_argument('-x', '--exclude-extensions', nargs='*', help="List of file extensions to exclude.")
     parser.add_argument('-i', '--ignore-folders', nargs='*', help="List of directories to ignore.")
