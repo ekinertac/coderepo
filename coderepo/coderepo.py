@@ -168,11 +168,21 @@ class CodeFileCollectorApp:
         self.ignore_files = args.ignore_files if args.ignore_files else []
 
     def run(self):
-        # Check if the default config file exists, create it if it doesn't
-        create_default_ignore_file()
+        # First check for .coderepoignore in the project directory
+        project_ignore_path = os.path.join(self.args.start_directory, '.coderepoignore')
+        root_ignore_path = os.path.expanduser('~/.coderepoignore')
 
-        if os.path.exists(self.args.config):
-            config_parser = ConfigParser(self.args.config)
+        # Use the project-level config if it exists; otherwise, use the global one
+        config_path = project_ignore_path if os.path.exists(project_ignore_path) else root_ignore_path
+
+        # If no config is found, create the default one in the root directory
+        if not os.path.exists(config_path):
+            create_default_ignore_file()
+            config_path = root_ignore_path  # use the newly created default ignore file
+
+        # Parse the config file if it exists
+        if os.path.exists(config_path):
+            config_parser = ConfigParser(config_path)
             _, config_exclude_patterns, config_ignore_folders, config_ignore_files = config_parser.parse()
             self.exclude_patterns = config_exclude_patterns or self.exclude_patterns
             self.ignore_folders.extend([os.path.abspath(os.path.join(self.args.start_directory, d)) for d in config_ignore_folders])
